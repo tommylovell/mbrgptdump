@@ -1,0 +1,36 @@
+    This is a C program that lists the contents of the partition table(s) of either a specific
+    disk or disk '.img', and (optionally, -o flag) writes each partition as a separate file.
+
+    This is what the makefile can look like for the following C code. It goes in
+    the same directory as the C source. The makefile copies the executable to '~/bin'
+    (which is in the Raspberry Pi $PATH), so it is easier to execute. Conversely, you
+    can move the executable into '/usr/local/bin' by replacing the 'mv' command with:
+        sudo mv ${PROGS} /usr/local/bin/${PROGS}
+    (remember it's a makefile, so tab out to 'sudo'):
+
+    You also won't have to 'sudo' it if it's 'chown'd/'chmod'd.
+
+    The "disk" that the executable runs against, can either be a device (e.g.
+    /dev/mmcblk0) or an unzipped file (e.g. 2022-09-22-raspios-bullseye-armhf.img).
+
+TEMPFILES = *.o *.out
+PROGS = mbrgptdump
+
+all:
+	gcc -o ${PROGS} ${PROGS}.c
+	sudo chown root:root ${PROGS}
+	sudo chmod u+s       ${PROGS}
+	mkdir ~/bin
+	sudo mv ${PROGS} ~/bin/${PROGS}
+
+clean:
+	-rm -f ${PROGS} ${TEMPFILES}
+	sudo rm ~/bin/${PROGS}
+
+
+    By doing the chown/chmod, You won't have to 'sudo'. I know, huge security hole.
+    There is a check done to make sure you are EUID == root, in case the source is
+    inaccessible by your uid.
+
+    The "disk" that the executable runs against, can either be a device (e.g.
+    /dev/mmcblk0) or an unzipped file (e.g. 2022-09-22-raspios-bullseye-armhf.img).
