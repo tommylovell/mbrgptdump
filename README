@@ -1,3 +1,8 @@
+This program is a learning tool.  It is poorly written, but it works.  It's been
+compiled on Ubuntu 20.04, Ubuntu 22.04, Raspbian GNU/Linux 11 (bullseye), and 
+Debian GNU/Linux bookworm/sid on a Starfive (Linux starfive1 5.15.0-starfive);
+and works on MMC, eMMC, USB, NVMe, and various "images".  
+
     This is a C program that lists the contents of the partition table(s) of either a specific
     disk or disk '.img', and (optionally, -o flag) writes each partition as a separate file.
 
@@ -34,3 +39,5 @@ clean:
 
     The "disk" that the executable runs against, can either be a device (e.g.
     /dev/mmcblk0) or an unzipped file (e.g. 2022-09-22-raspios-bullseye-armhf.img).
+
+Hope this is useful as a learning tool, but as always, YMMV...
