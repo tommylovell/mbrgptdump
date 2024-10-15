@@ -2,12 +2,12 @@
 #define  _LARGEFILE64_SOURCE
 #define __USE_LARGEFILE64
 #define __USE_FILE_OFFSET64
-#define  VERS        "1.02"
+#define  VERS        "1.04"
 
 /*  -------------  */
 /*  default flags  */
 /*  -------------  */
-#define  DEBUG_FLAG  0 /* '1' prints debug info, i.e., a hexdump of many areas; '0' does not */
+#define  DEBUG_FLAG  1 /* '1' prints debug info, i.e., a hexdump of many areas; '0' does not */
 #define  OUTPUT_FLAG 0 /* '1' produces output files, .mn, .gn, .hn suffixed; '0' doesn't */
 
 #define  NUMBUFS     128    /*  read-ahead normally this, or larger  */
@@ -83,14 +83,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-/* Whew.  Do I really need that? */
-
+/* Whew.  Do I really need that? Anyone can use it; anyway they want too; */
+/* I didn't invent anything; others may have copywrite rights; don't sue me. */
 /*
    This code is only executed a few times (and it's promarily for self-education),
    so,
    it doesn't have to be efficient;
    it doesn't have to be elegant (and god knows, it's not);
    it just needs to work!  And it mostly does...
+   But it probably has bugs and logic errors (leave comments);
+   and take what it says with a "grain of salt".
 
    It's just a cheap little utility cobbled together from other C programs to show
    me what is on "disk", and then optonally creates "partition files" (m1, m2 mn,
@@ -117,12 +119,13 @@ SOFTWARE.
 #include <time.h>
 
 typedef struct mbr_ent_tag {
-    unsigned int  starting_lba;
-    unsigned int  ending_lba;
-    unsigned int  num_sectors;
+    unsigned char status[1];
+    unsigned char starting_CHS[3]; /* no longer used */
     unsigned char type;
-    unsigned char res1[3];
-} mbr_ent;
+    unsigned char ending_CHS[3];   /* no longer used */
+    unsigned int  starting_lba;
+    unsigned int  num_sectors;     /* limits dos mbr disk to 0xffffffff */
+} __attribute__((aligned(4))) mbr_ent;  /* make sure struct is int aligned... */
 
 typedef char16_t efi_char16_t;  /* somehow this was never defined as a type... ??? */
 
@@ -194,7 +197,7 @@ int main(int argc, char **argv) {
         char    buf[S];
         struct mbr_tag {
             char reserved1[440];
-            int  diskid;
+            unsigned char diskid[4];
             char diskid2[2];
             pN_ent p1;
             pN_ent p2;
@@ -405,19 +408,26 @@ long long unsigned int gpth_partition_entry_lba=0;
         /*  -----------------------------------------------------  */
         /*  save the MBR partition in a small table and print info */
         /*  -----------------------------------------------------  */
+        printf("MBR diskID: 0x%02x%02x%02x%02x\n",
+            (unsigned char) rec.mbr.diskid[3], (unsigned char) rec.mbr.diskid[2],
+            (unsigned char) rec.mbr.diskid[1], (unsigned char) rec.mbr.diskid[0]);
+        /*  -----------------------------------------------------  */
+        /*  save the MBR partition in a small table and print info */
+        /*  -----------------------------------------------------  */
         /*  there is no guaranteed alignment of 'lba' and 'num',   */
         /*  so we can't do simple assignments, we have to do       */
         /*  'moves' to variables that are properly aligned.        */
         /*  -----------------------------------------------------  */
         for (i=0; i < 4; i++) {
-            memcpy( &(mbr_tbl+i)->starting_lba, &(pN_tbl_ptr+i)->lba, 4);
-            memcpy( &(mbr_tbl+i)->num_sectors,  &(pN_tbl_ptr+i)->num, 4);
-                    (mbr_tbl+i)->ending_lba     = 0; /* (just in case it is NOT already zeros on this machine) */
-                 if((mbr_tbl+i)->num_sectors    != 0) (mbr_tbl+i)->ending_lba = (mbr_tbl+i)->starting_lba + (mbr_tbl+i)->num_sectors - 1;
-            memcpy(&(mbr_tbl+i)->type,          &(pN_tbl_ptr+i)->type, 1);
-
+            memcpy(&(mbr_tbl+i)->status,        &(pN_tbl_ptr+i)->status, 16);
             printf("MBR partition %llu: starting sector:%12u; ending sector:%12u; number of sectors:%12u; type: %02x\n",
-               (long long unsigned int) i+1, (mbr_tbl+i)->starting_lba, (mbr_tbl+i)->ending_lba, (mbr_tbl+i)->num_sectors, (mbr_tbl+i)->type);
+                (long long unsigned int) i+1,
+                (mbr_tbl+i)->starting_lba,
+               ((mbr_tbl+i)->num_sectors + (mbr_tbl+i)->starting_lba -1),
+                (mbr_tbl+i)->num_sectors,
+                (mbr_tbl+i)->type);
+           /*  (long long unsigned int) i+1, (mbr_tbl+i)->starting_lba, (mbr_tbl+i)->ending_lba,
+               ((mbr_tbl+i)->ending_lba - (mbr_tbl+i)->starting_lba +1), (mbr_tbl+i)->type); */
         }  /*  end of 'for (i=0; (i<j)  */
         printf("\n");
 
@@ -474,20 +484,6 @@ long long unsigned int gpth_partition_entry_lba=0;
         /*  ----------------------------------------------  */
         /*  There is a valid GPT header; save info from it  */
         /*  ----------------------------------------------  */
-/*      this is the old code - it works just as well as the new code,
-        but the new code is more bullet-proof (future-proof??)
-        memcpy (&gpth_revision,               &rec.gpt_header.revision,               4);
-        memcpy (&gpth_header_size,            &rec.gpt_header.header_size,            4);
-        memcpy (&gpth_my_lba,                 &rec.gpt_header.my_lba,                 8);
-        memcpy (&gpth_alternate_lba,          &rec.gpt_header.alternate_lba,          8);
-        memcpy (&gpth_first_usable_lba,       &rec.gpt_header.first_usable_lba,       8);
-        memcpy (&gpth_last_usable_lba,        &rec.gpt_header.last_usable_lba,        8);
-        memcpy (&gpth_disk_guid,              &rec.gpt_header.disk_guid,             16);
-        memcpy (&gpth_partition_entry_lba,    &rec.gpt_header.partition_entry_lba,    8);
-        memcpy (&gpth_num_partition_entries,  &rec.gpt_header.num_partition_entries,  4);
-        memcpy (&gpth_sizeof_partition_entry, &rec.gpt_header.sizeof_partition_entry, 4);  */
-
-/*      this is the new code  */
         gpth_revision                        = rec.gpt_header.revision;
         gpth_header_size                     = rec.gpt_header.header_size;
         gpth_my_lba                          = rec.gpt_header.my_lba;
@@ -525,7 +521,7 @@ long long unsigned int gpth_partition_entry_lba=0;
     printf("Disk GUID is %s\n", string_disk_guid);
     printf("Starting LBA of partition entries is %lli\n", gpth_partition_entry_lba);
     printf("Number of partition entries is %li\n", gpth_num_partition_entries);
-    printf("Size of each parttition entry is %li\n", gpth_sizeof_partition_entry);
+    printf("Size of each partition entry is %li\n", gpth_sizeof_partition_entry);
 
     if (debug)  hexDump("Primary GPT header", &rec.gpt_header.signature, 92);
 
@@ -714,8 +710,9 @@ int write_MBR_partition(mbr_ent *mbr_tbl, uint64_t i, char *ifn, char *ofn) {
     char    sprintf_buf[4], fn[S+3], buf[S], pMBR=0xee;
     ssize_t bytes_read, bytes_written;
 
-    if (memcmp(&(mbr_tbl+i)->num_sectors, &zeros, 4) == 0) return 1;  /* ignore unused entry  */
-    if (memcmp(&(mbr_tbl)->type, &pMBR, 1)  == 0) return 1; /*  ignore pMBR (type ee)  */
+    if ((mbr_tbl+i)->num_sectors == 0) return 1;                      /* ignore unused entry  */
+    if ((mbr_tbl+i)->starting_lba == 0) return 1;                     /* ignore unused entry  */
+    if (memcmp(&(mbr_tbl)->type, &pMBR, 1)  == 0) return 1;         /* ignore pMBR (type ee)  */
 
     if ((ifd = open(ifn, O_RDONLY | O_LARGEFILE)) == -1) {  /*  open input  */
         errsv = errno;
@@ -727,10 +724,9 @@ int write_MBR_partition(mbr_ent *mbr_tbl, uint64_t i, char *ifn, char *ofn) {
     if (debug) hexDump("write_MBR_partition entry", (mbr_tbl+i), 16 );
 
     of = (mbr_tbl+i)->starting_lba;  /*  start of partition  */
-    sectors = (mbr_tbl+i)->num_sectors;  /* number of sectors in this partition  */
     printf("\noffset in sectors= %llu; size in sectors= %lli\n",
             (long long unsigned int) of,
-            (long long int) sectors);
+            (long long int) (mbr_tbl+i)->num_sectors);
     of = of * S;  /*  'of' now offset in bytes for 'lseek64'...  */
     printf("offset in bytes = %llu\n", (long long unsigned int) of);
 
@@ -837,7 +833,7 @@ int write_GPT_partition(mbr_ent *mbr_tbl, uint64_t i,
     }  /*  end of 'if ((ifd'  */
 
     /*  ----------------------------------------------------------------  */
-    /*  if we are not writing to /dev/null, then do all of the following  /*
+    /*  if we are not writing to /dev/null, then do all of the following  */
     /*  ----------------------------------------------------------------  */
     if ((strcmp(ofn, "/dev/null")) != 0) {
         /*  ----------------------------------------------------------------  */
@@ -939,8 +935,8 @@ void hexDump(char *desc, void *addr, int len) {
             if (i != 0)
                 printf ("  %s\n", buff);
 
-            // Output the offset.
-            printf ("  %04x ", i);
+            // Output the oddress and offset.
+            printf ("  %p  %04x ", addr+i, i);
         }
 
         // Now the hex code for the specific character.
