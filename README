@@ -41,3 +41,6 @@ clean:
     /dev/mmcblk0) or an unzipped file (e.g. 2022-09-22-raspios-bullseye-armhf.img).
 
 Hope this is useful as a learning tool, but as always, YMMV...
+
+btw, version 1.03 has a bug and is n/g.  1.04 is still to be tested on different os's 
+and disks.
