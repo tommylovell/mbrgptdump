@@ -2,7 +2,7 @@
 #define  _LARGEFILE64_SOURCE
 #define __USE_LARGEFILE64
 #define __USE_FILE_OFFSET64
-#define  VERS        "1.04"
+#define  VERS        "1.05"
 
 /*  -------------  */
 /*  default flags  */
@@ -251,7 +251,7 @@ long long unsigned int gpth_partition_entry_lba=0;
      long unsigned int gpth_sizeof_partition_entry=0;
 
     if (geteuid() != 0) {
-        fprintf(stderr, "EUID not 0; you must run as root, or sudo, to access a disk device\n");
+        fprintf(stderr, "EUID not 0; you  may have to run as root, or sudo, to access a disk device or .img file\n");
     }
 
     /*  --------------------------------------------  */
@@ -420,15 +420,14 @@ long long unsigned int gpth_partition_entry_lba=0;
         /*  -----------------------------------------------------  */
         for (i=0; i < 4; i++) {
             memcpy(&(mbr_tbl+i)->status,        &(pN_tbl_ptr+i)->status, 16);
+	    if ((mbr_tbl+i)->type == 0) continue; /* nothing to see here.  move along */
             printf("MBR partition %llu: starting sector:%12u; ending sector:%12u; number of sectors:%12u; type: %02x\n",
                 (long long unsigned int) i+1,
                 (mbr_tbl+i)->starting_lba,
                ((mbr_tbl+i)->num_sectors + (mbr_tbl+i)->starting_lba -1),
                 (mbr_tbl+i)->num_sectors,
                 (mbr_tbl+i)->type);
-           /*  (long long unsigned int) i+1, (mbr_tbl+i)->starting_lba, (mbr_tbl+i)->ending_lba,
-               ((mbr_tbl+i)->ending_lba - (mbr_tbl+i)->starting_lba +1), (mbr_tbl+i)->type); */
-        }  /*  end of 'for (i=0; (i<j)  */
+        }  /*  end of 'for (i=0; i<4; i++)' */
         printf("\n");
 
         if (debug) hexDump("Saved MBR data", mbr_tbl, 4*sizeof(mbr_ent));
@@ -451,7 +450,7 @@ long long unsigned int gpth_partition_entry_lba=0;
 
                     ( partitions > 3 ) ? (j=3) : (j=--partitions) ;
 
-                    printf("%llu partitions will be dumped\n", (long long unsigned int) j+1);
+                    printf("Up to %llu partitions will be dumped\n", (long long unsigned int) j+1);
 
                     for (i=0; i <= j; i++) {
                         if ((ret = write_MBR_partition((mbr_tbl), i, ifn, ofn)) == 0) {
@@ -707,7 +706,7 @@ int write_MBR_partition(mbr_ent *mbr_tbl, uint64_t i, char *ifn, char *ofn) {
     int64_t off64t, sectors, progress, mod=100000;
     int     ifd, ofd, errsv;
     uint64_t of = 0;
-    char    sprintf_buf[4], fn[S+3], buf[S], pMBR=0xee;
+    char    sprintf_buf[12], fn[S+3], buf[S], pMBR=0xee;
     ssize_t bytes_read, bytes_written;
 
     if ((mbr_tbl+i)->num_sectors == 0) return 1;                      /* ignore unused entry  */
@@ -762,7 +761,7 @@ int write_MBR_partition(mbr_ent *mbr_tbl, uint64_t i, char *ifn, char *ofn) {
     }  /*  end of 'if ((strcmp(ofd, "/dev/null"))  */
 
     progress = 0;
-    /*  sectors set above  */
+    sectors = (mbr_tbl+i)->num_sectors;
     while (sectors--) {
         /* todo:
             read size s/b at least 128 sectors for efficiency
@@ -839,6 +838,7 @@ int write_GPT_partition(mbr_ent *mbr_tbl, uint64_t i,
         /*  ----------------------------------------------------------------  */
         /*  check to see if there is a matching MBR partition, i.e. a hybrid  */
         /*  ----------------------------------------------------------------  */
+        hybrid_flag = 0;
         if (mbr_flag) {
             for (j=0; j<3; j++) {
                 if ((mbr_tbl+j)->starting_lba == start &&
