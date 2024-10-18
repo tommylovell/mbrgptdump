@@ -1,6 +1,6 @@
 This program is a learning tool.  It is poorly written, but it works.  It's been
-compiled on Ubuntu 20.04, Ubuntu 22.04, Raspbian GNU/Linux 11 (bullseye), and 
-Debian GNU/Linux bookworm/sid on a Starfive (Linux starfive1 5.15.0-starfive);
+compiled on Ubuntu 24.04; Raspbian GNU/Linux 11 (bullseye), both 32-bit and 64-bit; 
+and Debian GNU/Linux bookworm/sid on a Starfive (Linux starfive1 5.15.0-starfive);
 and works on MMC, eMMC, USB, NVMe, and various "images".  
 
     This is a C program that lists the contents of the partition table(s) of either a specific
