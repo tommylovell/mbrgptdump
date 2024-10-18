@@ -42,5 +42,5 @@ clean:
 
 Hope this is useful as a learning tool, but as always, YMMV...
 
-btw, version 1.03 has a bug and is n/g.  1.04 is still to be tested on different os's 
-and disks.
+btw, version 1.03 and 1.04 have bugs and are n/g.  1.05 is still MOSTLY tested on different os's 
+and disks, but it still may have bugs
