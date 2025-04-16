@@ -572,8 +572,14 @@ long long unsigned int gpth_partition_entry_lba=0;
                         (long long int) rec.gpt_entry.starting_lba,
                         (long long int) rec.gpt_entry.ending_lba,
                         ++num_sec,
-                        0);
+    			0);
+
+            /* print the 'mixed endian' partition GUID. */
+            guid_raw_to_string(rec.gpt_entry.unique_partition_guid, string_disk_guid);
+            printf("iPartition GUID is %s\n", string_disk_guid);
+
             if (debug) hexDump("GPT partition entry", rec.buf, 92);
+
         } else {
             fprintf(stderr, "partition, %ui, size read, %i, not %i; exiting\n", (int) i, (int) sz, (int) gpth_sizeof_partition_entry);
             exit(4);
