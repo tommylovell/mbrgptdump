@@ -2,7 +2,7 @@
 #define  _LARGEFILE64_SOURCE
 #define __USE_LARGEFILE64
 #define __USE_FILE_OFFSET64
-#define  VERS        "1.05"
+#define  VERS        "1.06"
 
 /*  -------------  */
 /*  default flags  */
